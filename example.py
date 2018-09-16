@@ -8,7 +8,7 @@ Non-public methods should at least have a comment that describes what
 the method does.  (See https://www.python.org/dev/peps/pep-0008/ for more information.)
 
 When a doc string is used, this will be information will be available as the __doc__
-attribute for this module.  
+attribute for this module.
 
 On the python command line, you could type
 >>> import example
@@ -19,13 +19,13 @@ import sys
 import os
 import datetime
 
-__author__ = "Bruce Montgomery"
-__copyright__ = "Copyright (C) 2018 by Bruce Montgomery"
+__author__ = "Vipraja Patil"
+__copyright__ = "Copyright (C) 2018 by Vipraja Patil"
 #
 # Redistribution, modification or use of this software in source or binary
 # forms is permitted as long as the files maintain this copyright. Users are
 # permitted to modify this and use it to learn about the field of embedded
-# software. Bruce Montgomery and the University of Colorado
+# software. Vipraja Patil and the University of Colorado
 # are not liable for any misuse of this material.
 #
 
@@ -45,12 +45,12 @@ class Dog(object):
 def walker(name):
     """walker: an example of a python function"""
     dog1 = Dog(name)
-    dog1.add_trick("Roll Over")
+    dog1.add_trick("Play Dead")
     print("Walking a new dog:")
     print("  The kind of this thing is ",dog1.kind)
     print("  This dog is ",dog1.name)
     print("  It knows these tricks - ",dog1.tricks)
-			
+
 # You can run this code from a command line - something like
 # C:\Source> python example.py Fido
 #    ...runs walker on the name Fido...
