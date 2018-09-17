@@ -62,4 +62,4 @@ def walker(name):
 #    ...runs walker on the name Fred...
 
 if __name__ == "__main__":
-    walker((sys.argv[1]))
+    walker((sys.argv[0]))
