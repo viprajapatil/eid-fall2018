@@ -4,13 +4,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUi
 import Adafruit_DHT as sensor
 
-def timer_func(func):
-    timer = QTimer()
-    timer.timeout.connect(func)
-    timer.start(2000)
-
 class project1(QDialog):
-
     def __init__(self):
         super(project1,self).__init__()
         loadUi('project1.ui',self)
@@ -21,18 +15,29 @@ class project1(QDialog):
 
     @pyqtSlot()
     def get_temp(self):
-        try:
-                time = QTime.currentTime()
-                humidity,temp = sensor.read_retry(sensor.DHT22, 4)
-                self.temp_value.setText('{} C'.format(round(temp,2)))
-                self.temp_time.setText(time.toString(Qt.DefaultLocaleLongDate))
-
+         try:
+            time = QTime.currentTime()
+            timeout = 1;
+            humidity,temp = sensor.read(sensor.DHT22, 4)
+            if temp is None and humidity is None:
+               self.temp_value.setText('ERROR')
+            else:
+               self.temp_value.setText('{} C'.format(round(temp,4)))
+            self.temp_time.setText(time.toString(Qt.DefaultLocaleLongDate))
+         finally:
+            QTimer.singleShot(5000, self.get_temp)
 
     def get_hum(self):
-        time = QTime.currentTime()
-        humidity,temp = sensor.read_retry(sensor.DHT22, 4)
-        self.hum_time.setText(time.toString(Qt.DefaultLocaleLongDate))
-        self.hum_value.setText('{} %'.format(round(humidity,2)))
+        try:
+            time = QTime.currentTime()
+            humidity,temp = sensor.read(sensor.DHT22, 4)
+            if temp is None and humidity is None:
+               self.hum_value.setText('ERROR')
+            else:
+               self.hum_value.setText('{} %'.format(round(humidity,4)))
+            self.hum_time.setText(time.toString(Qt.DefaultLocaleLongDate))
+        finally:
+            QTimer.singleShot(5000, self.get_hum)
 
     def temp_refresh_clicked(self):
         time = QTime.currentTime()
