@@ -8,15 +8,21 @@ temp_list = []
 hum_list = []
 
 class project1(QDialog):
+
+    global hum_button
+    global temp_button
+
     def __init__(self):
         super(project1,self).__init__()
         loadUi('project1.ui',self)
         self.setWindowTitle('EID project 1')
-        self.temp_list = []
-        self.hum_list = []
+        self.temp_button = 0
+        self.hum_button = 0
+        self.conversion_flag = 0      # 0- Celsius, 1- Fahrenheit
         time = QTime.currentTime()
         self.refresh_temp.clicked.connect(self.temp_refresh_clicked)
         self.refresh_hum.clicked.connect(self.humidity_refresh_clicked)
+        self.conversion_button.clicked.connect(self.conversion_clicked)
 
     @pyqtSlot()
     def get_temp(self):
@@ -26,7 +32,24 @@ class project1(QDialog):
             if temp is None and humidity is None:
                self.temp_value.setText('ERROR')
             else:
-               self.temp_value.setText('{} C'.format(round(temp,4)))
+               if self.temp_button == 1:
+                  if self.conversion_flag == 1:
+                     temp = temp * 1.8
+                     temp = temp + 32
+                     if temp > 78.8:
+                        self.alarm_temp.setText('ALERT HIGH TEMP')
+                     else:
+                        self.alarm_temp.setText('')
+                     self.temp_value.setText('{} F'.format(round(temp,4)))
+                  else:
+                     if temp > 26:
+                        self.alarm_temp.setText('ALERT HIGH TEMP')
+                     else:
+                        self.alarm_temp.setText('')
+
+                     self.temp_value.setText('{} C'.format(round(temp,4)))
+                  self.temp_time.setText(time.toString(Qt.DefaultLocaleLongDate))
+                  self.temp_button = 0
                temp_avg = 0
                temp_list_count = 0;
                temp_list.append(round(temp,4))
@@ -34,9 +57,15 @@ class project1(QDialog):
                   temp_avg = i + temp_avg
                   temp_list_count = temp_list_count + 1
                temp_avg = temp_avg/temp_list_count
-               self.avg_temp.setText('Avg: {}'.format(temp_avg))
-            self.temp_time.setText(time.toString(Qt.DefaultLocaleLongDate))
+               if self.conversion_flag == 1:
+                  temp_avg_f = temp_avg
+                  temp_avg_f = temp_avg_f * 1.8
+                  temp_avg_f = temp_avg_f + 32
+                  self.avg_temp.setText('Avg: {} F'.format(round(temp_avg_f,2)))
+               else:
+                  self.avg_temp.setText('Avg: {} C'.format(round(temp_avg,2)))
          finally:
+            self.temp_button = 0
             QTimer.singleShot(5000, self.get_temp)
 
     def get_hum(self):
@@ -46,7 +75,14 @@ class project1(QDialog):
             if temp is None and humidity is None:
                self.hum_value.setText('ERROR')
             else:
-               self.hum_value.setText('{} %'.format(round(humidity,4)))
+               if self.hum_button == 1:
+                  self.hum_value.setText('{} %'.format(round(humidity,4)))
+                  self.hum_time.setText(time.toString(Qt.DefaultLocaleLongDate))
+                  self.hum_button = 0
+               if humidity > 31:
+                  self.alarm_hum.setText('ALERT HIGH HUM')
+               else:
+                  self.alarm_hum.setText('')
                hum_avg = 0
                hum_list_count = 0
                hum_list.append(round(humidity,4))
@@ -54,21 +90,26 @@ class project1(QDialog):
                   hum_avg = i + hum_avg
                   hum_list_count = hum_list_count + 1
                hum_avg = hum_avg/hum_list_count
-               self.avg_hum.setText('Avg: {}'.format(hum_avg))
-            self.hum_time.setText(time.toString(Qt.DefaultLocaleLongDate))
+               self.avg_hum.setText('Avg: {}%'.format(round(hum_avg,2)))
         finally:
+            self.hum_button = 0
             QTimer.singleShot(5000, self.get_hum)
 
     def temp_refresh_clicked(self):
+        self.temp_button = 1
         time = QTime.currentTime()
         self.get_temp()
+
        # self.list_temp.addItems(round(temp,2))
        # list_temp.addItem(temp_item)
 
     def humidity_refresh_clicked(self):
+        self.hum_button = 1
         time = QTime.currentTime()
         self.get_hum()
 
+    def conversion_clicked(self):
+        self.conversion_flag = 1 - self.conversion_flag
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
