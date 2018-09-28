@@ -2,6 +2,7 @@
 @author Vipraja Patil
 references:
 login --- https://stackoverflow.com/questions/11812000/login-dialog-pyqt
+https://ralsina.me/posts/BB974.html
 """
 import sys
 from PyQt5 import QtWidgets
