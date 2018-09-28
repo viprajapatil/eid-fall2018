@@ -1,7 +1,10 @@
 """
 @author Vipraja Patil
+
+This codes uses .ui files and creates a Python application which gets temperature and sensor values from DHT22 sensor which is
+interfaced with rpi3.
 references:
-login --- https://stackoverflow.com/questions/11812000/login-dialog-pyqt
+https://stackoverflow.com/questions/11812000/login-dialog-pyqt
 https://ralsina.me/posts/BB974.html
 """
 import sys
