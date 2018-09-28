@@ -1,4 +1,10 @@
+"""
+@author Vipraja Patil
+references:
+login --- https://stackoverflow.com/questions/11812000/login-dialog-pyqt
+"""
 import sys
+from PyQt5 import QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUi
@@ -7,12 +13,23 @@ import Adafruit_DHT as sensor
 temp_list = []
 hum_list = []
 
+class Login(QDialog):
+    def __init__(self, parent=None):
+        super(Login, self).__init__(parent)
+        loadUi('login.ui',self)
+        self.setWindowTitle('Login')
+        self.user.text()
+        self.password.text()
+        self.login_button.clicked.connect(self.login_func)
+
+    def login_func(self):
+        if (self.user.text() == "vipraja" and self.password.text() == "vipraja"):
+           self.accept()
+        else:
+           self.login_result.setText('Login unsucessful')
+
 class project1(QDialog):
-
-    global hum_button
-    global temp_button
-
-    def __init__(self):
+    def __init__(self, parent=None):
         super(project1,self).__init__()
         loadUi('project1.ui',self)
         self.setWindowTitle('EID project 1')
@@ -100,9 +117,6 @@ class project1(QDialog):
         time = QTime.currentTime()
         self.get_temp()
 
-       # self.list_temp.addItems(round(temp,2))
-       # list_temp.addItem(temp_item)
-
     def humidity_refresh_clicked(self):
         self.hum_button = 1
         time = QTime.currentTime()
@@ -113,6 +127,9 @@ class project1(QDialog):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    widget = project1()
-    widget.show()
-    sys.exit(app.exec_())
+    login = Login()
+
+    if login.exec_() == QtWidgets.QDialog.Accepted:
+       widget = project1()
+       widget.show()
+       sys.exit(app.exec_())
