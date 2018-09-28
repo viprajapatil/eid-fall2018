@@ -63,10 +63,14 @@ class project1(QDialog):
                         self.alarm_temp.setText('ALERT HIGH TEMP')
                      else:
                         self.alarm_temp.setText('')
-
                      self.temp_value.setText('{} C'.format(round(temp,4)))
                   self.temp_time.setText(time.toString(Qt.DefaultLocaleLongDate))
                   self.temp_button = 0
+               else:
+                  if self.conversion_flag == 1:
+                     self.list_temp.addItem('{} F'.format(round(temp,4)))
+                  else:
+                     self.list_temp.addItem('{} C'.format(round(temp,4)))
                temp_avg = 0
                temp_list_count = 0;
                temp_list.append(round(temp,4))
@@ -83,7 +87,7 @@ class project1(QDialog):
                   self.avg_temp.setText('Avg: {} C'.format(round(temp_avg,2)))
          finally:
             self.temp_button = 0
-            QTimer.singleShot(5000, self.get_temp)
+            QTimer.singleShot(2000, self.get_temp)
 
     def get_hum(self):
         try:
@@ -96,7 +100,7 @@ class project1(QDialog):
                   self.hum_value.setText('{} %'.format(round(humidity,4)))
                   self.hum_time.setText(time.toString(Qt.DefaultLocaleLongDate))
                   self.hum_button = 0
-               if humidity > 31:
+               if humidity > 34:
                   self.alarm_hum.setText('ALERT HIGH HUM')
                else:
                   self.alarm_hum.setText('')
@@ -107,10 +111,11 @@ class project1(QDialog):
                   hum_avg = i + hum_avg
                   hum_list_count = hum_list_count + 1
                hum_avg = hum_avg/hum_list_count
+               self.list_hum.addItem('{} %'.format(round(humidity,4)))
                self.avg_hum.setText('Avg: {}%'.format(round(hum_avg,2)))
         finally:
             self.hum_button = 0
-            QTimer.singleShot(5000, self.get_hum)
+            QTimer.singleShot(2000, self.get_hum)
 
     def temp_refresh_clicked(self):
         self.temp_button = 1
