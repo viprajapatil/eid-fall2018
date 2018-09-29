@@ -1,18 +1,18 @@
 """
 @author Vipraja Patil
-
-This codes uses .ui files and creates a Python application which gets temperature and sensor values from DHT22 sensor which is
-interfaced with rpi3.
 references:
-https://stackoverflow.com/questions/11812000/login-dialog-pyqt
+login --- https://stackoverflow.com/questions/11812000/login-dialog-pyqt
 https://ralsina.me/posts/BB974.html
 """
 import sys
+from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUi
 import Adafruit_DHT as sensor
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 temp_list = []
 hum_list = []
@@ -32,6 +32,52 @@ class Login(QDialog):
         else:
            self.login_result.setText('Login unsucessful')
 
+class Graph(FigureCanvas):
+    def __init__(self, parent=None, width=10, height=7, dpi=300):
+        graph = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = graph.add_subplot(111)
+        self.axes.hold(False)
+        self.compute_initial_figure()
+
+        FigureCanvas.__init__(self,graph)
+        self.setParent(parent)
+
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+
+        def graph_data(self):
+           pass
+
+class temperature_graph(Graph):
+    def __init__(self, *args, **kwargs):
+        Graph.__init__(self, *args, **kwargs)
+        timer = QtCore.QTimer(self)
+        timer.timeout.connect(self.update_figure)
+        timer.start(12000)
+
+    def compute_initial_figure(self):
+        self.axes.plot([0, 1, 2, 3], [0, 0, 0 ,0], 'r')
+    
+    def update_figure(self):
+        print(temp_list[-4:])
+        self.axes.plot([0, 1, 2, 3], temp_list[-4:], 'r')
+        self.draw()
+        
+class humidity_graph(Graph):
+    def __init__(self, *args, **kwargs):
+        Graph.__init__(self, *args, **kwargs)
+        timer1 = QtCore.QTimer(self)
+        timer1.timeout.connect(self.update_figure)
+        timer1.start(12000)
+
+    def compute_initial_figure(self):
+        self.axes.plot([0, 1, 2, 3], [0, 0, 0 ,0], 'r')
+    
+    def update_figure(self):
+        print(hum_list[-4:])
+        self.axes.plot([0, 1, 2, 3], hum_list[-4:], 'r')
+        self.draw()
+    
 class project1(QDialog):
     def __init__(self, parent=None):
         super(project1,self).__init__()
@@ -41,9 +87,20 @@ class project1(QDialog):
         self.hum_button = 0
         self.conversion_flag = 0      # 0- Celsius, 1- Fahrenheit
         time = QTime.currentTime()
+        self.temp_threshold.text()
+        self.hum_threshold.text()
+        self.temp_widget = QWidget(self)
+        self.temp_widget.setGeometry(QtCore.QRect(20,400,500,350))
+        temp_layout = QVBoxLayout(self.temp_widget)
+        temp = temperature_graph(self.temp_widget, width=4, height=3, dpi=50)
+        self.hum_widget = QWidget(self)
+        self.hum_widget.setGeometry(QtCore.QRect(240,400,500,350))
+        hum_layout = QVBoxLayout(self.hum_widget)
+        hum = humidity_graph(self.hum_widget, width=4, height=3, dpi=50)
         self.refresh_temp.clicked.connect(self.temp_refresh_clicked)
         self.refresh_hum.clicked.connect(self.humidity_refresh_clicked)
         self.conversion_button.clicked.connect(self.conversion_clicked)
+        
 
     @pyqtSlot()
     def get_temp(self):
@@ -53,21 +110,29 @@ class project1(QDialog):
             if temp is None and humidity is None:
                self.temp_value.setText('ERROR')
             else:
+               temp_list.append(round(temp,4))
+               tstr = self.temp_threshold.text()
+               if not tstr:
+                  t = 26
+               else:
+                  t = int(tstr)
                if self.temp_button == 1:
                   if self.conversion_flag == 1:
                      temp = temp * 1.8
                      temp = temp + 32
-                     if temp > 78.8:
+                     tstr = self.temp_threshold.text()
+                     if temp > (t*1.8)+32:
                         self.alarm_temp.setText('ALERT HIGH TEMP')
                      else:
                         self.alarm_temp.setText('')
                      self.temp_value.setText('{} F'.format(round(temp,4)))
                   else:
-                     if temp > 26:
+                     if temp > t:
                         self.alarm_temp.setText('ALERT HIGH TEMP')
                      else:
                         self.alarm_temp.setText('')
-                     self.temp_value.setText('{} C'.format(round(temp,4)))
+                    
+                  self.temp_value.setText('{} C'.format(round(temp,4)))
                   self.temp_time.setText(time.toString(Qt.DefaultLocaleLongDate))
                   self.temp_button = 0
                else:
@@ -77,7 +142,6 @@ class project1(QDialog):
                      self.list_temp.addItem('{} C'.format(round(temp,4)))
                temp_avg = 0
                temp_list_count = 0;
-               temp_list.append(round(temp,4))
                for i in temp_list:
                   temp_avg = i + temp_avg
                   temp_list_count = temp_list_count + 1
@@ -91,7 +155,7 @@ class project1(QDialog):
                   self.avg_temp.setText('Avg: {} C'.format(round(temp_avg,2)))
          finally:
             self.temp_button = 0
-            QTimer.singleShot(2000, self.get_temp)
+            QTimer.singleShot(1000, self.get_temp)
 
     def get_hum(self):
         try:
@@ -104,7 +168,13 @@ class project1(QDialog):
                   self.hum_value.setText('{} %'.format(round(humidity,4)))
                   self.hum_time.setText(time.toString(Qt.DefaultLocaleLongDate))
                   self.hum_button = 0
-               if humidity > 34:
+               hstr = self.hum_threshold.text()
+               print('hstr'+hstr)
+               if not hstr:
+                   h = 50
+               else:
+                   h = int(hstr)                  
+               if humidity > h:
                   self.alarm_hum.setText('ALERT HIGH HUM')
                else:
                   self.alarm_hum.setText('')
@@ -119,7 +189,7 @@ class project1(QDialog):
                self.avg_hum.setText('Avg: {}%'.format(round(hum_avg,2)))
         finally:
             self.hum_button = 0
-            QTimer.singleShot(2000, self.get_hum)
+            QTimer.singleShot(1000, self.get_hum)
 
     def temp_refresh_clicked(self):
         self.temp_button = 1
@@ -142,3 +212,4 @@ if __name__ == '__main__':
        widget = project1()
        widget.show()
        sys.exit(app.exec_())
+
