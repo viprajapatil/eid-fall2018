@@ -36,7 +36,7 @@ class Graph(FigureCanvas):
     def __init__(self, parent=None, width=10, height=7, dpi=300):
         graph = Figure(figsize=(width, height), dpi=dpi)
         self.axes = graph.add_subplot(111)
-        self.axes.hold(False)
+        self.axes.clear()
         self.compute_initial_figure()
 
         FigureCanvas.__init__(self,graph)
@@ -59,7 +59,7 @@ class temperature_graph(Graph):
         self.axes.plot([0, 1, 2, 3], [0, 0, 0 ,0], 'r')
     
     def update_figure(self):
-        print(temp_list[-4:])
+        self.axes.clear()
         self.axes.plot([0, 1, 2, 3], temp_list[-4:], 'r')
         self.draw()
         
@@ -74,6 +74,7 @@ class humidity_graph(Graph):
         self.axes.plot([0, 1, 2, 3], [0, 0, 0 ,0], 'r')
     
     def update_figure(self):
+        self.axes.clear()
         print(hum_list[-4:])
         self.axes.plot([0, 1, 2, 3], hum_list[-4:], 'r')
         self.draw()
@@ -100,11 +101,12 @@ class project1(QDialog):
         self.refresh_temp.clicked.connect(self.temp_refresh_clicked)
         self.refresh_hum.clicked.connect(self.humidity_refresh_clicked)
         self.conversion_button.clicked.connect(self.conversion_clicked)
-        
+        self.get_temp()
+        self.get_hum()
 
     @pyqtSlot()
     def get_temp(self):
-         try:
+        try:
             time = QTime.currentTime()
             humidity,temp = sensor.read(sensor.DHT22, 4)
             if temp is None and humidity is None:
@@ -153,9 +155,9 @@ class project1(QDialog):
                   self.avg_temp.setText('Avg: {} F'.format(round(temp_avg_f,2)))
                else:
                   self.avg_temp.setText('Avg: {} C'.format(round(temp_avg,2)))
-         finally:
-            self.temp_button = 0
-            QTimer.singleShot(1000, self.get_temp)
+        finally:
+               self.temp_button = 0
+               QTimer.singleShot(1000, self.get_temp)
 
     def get_hum(self):
         try:
@@ -169,7 +171,6 @@ class project1(QDialog):
                   self.hum_time.setText(time.toString(Qt.DefaultLocaleLongDate))
                   self.hum_button = 0
                hstr = self.hum_threshold.text()
-               print('hstr'+hstr)
                if not hstr:
                    h = 50
                else:
@@ -188,8 +189,8 @@ class project1(QDialog):
                self.list_hum.addItem('{} %'.format(round(humidity,4)))
                self.avg_hum.setText('Avg: {}%'.format(round(hum_avg,2)))
         finally:
-            self.hum_button = 0
-            QTimer.singleShot(1000, self.get_hum)
+               self.hum_button = 0
+               QTimer.singleShot(1000, self.get_hum)
 
     def temp_refresh_clicked(self):
         self.temp_button = 1
