@@ -1,8 +1,14 @@
 """
 @author Vipraja Patil
-references:
-login --- https://stackoverflow.com/questions/11812000/login-dialog-pyqt
+
+@description
+Created .ui files using QT GUI. Using these .ui files craeted a Python application for retrieving temperature and humidity values from DHT22 sensor which is interfaced with Rpi3 and displaying them.
+
+@references:
+https://stackoverflow.com/questions/11812000/login-dialog-pyqt
 https://ralsina.me/posts/BB974.html
+https://gist.github.com/pklaus/3e16982d952969eb8a9a#file-embedding_in_qt5-py-L14
+https://www.youtube.com/watch?v=7SrD4l2o-uk
 """
 import sys
 from PyQt5 import QtCore
