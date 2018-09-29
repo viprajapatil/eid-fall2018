@@ -1,4 +1,6 @@
 """
+Interfacing DHT22 with Rpi3
+
 @author Vipraja Patil
 
 @description
@@ -23,6 +25,7 @@ from matplotlib.figure import Figure
 temp_list = []
 hum_list = []
 
+# Class defining Login dialog
 class Login(QDialog):
     def __init__(self, parent=None):
         super(Login, self).__init__(parent)
@@ -38,6 +41,7 @@ class Login(QDialog):
         else:
            self.login_result.setText('Login unsucessful')
 
+# This class includes the basic initialization required for displaying a graph
 class Graph(FigureCanvas):
     def __init__(self, parent=None, width=10, height=7, dpi=300):
         graph = Figure(figsize=(width, height), dpi=dpi)
@@ -50,10 +54,12 @@ class Graph(FigureCanvas):
 
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-
-        def graph_data(self):
-           pass
-
+        
+# This class defines functions for temperature graph.
+# compute_initial_figure -  This function creates a initial graph which is displayd at the start
+# of the application
+# update_figure - This function updates the graph after every 12secs
+# reference - https://gist.github.com/pklaus/3e16982d952969eb8a9a#file-embedding_in_qt5-py-L14
 class temperature_graph(Graph):
     def __init__(self, *args, **kwargs):
         Graph.__init__(self, *args, **kwargs)
@@ -68,7 +74,12 @@ class temperature_graph(Graph):
         self.axes.clear()
         self.axes.plot([0, 1, 2, 3], temp_list[-4:], 'r')
         self.draw()
-        
+
+# This class defines functions for humidity graph.
+# compute_initial_figure -  This function creates a initial graph which is displayd at the start
+# of the application
+# update_figure - This function updates the graph after every 12secs
+# reference - https://gist.github.com/pklaus/3e16982d952969eb8a9a#file-embedding_in_qt5-py-L14
 class humidity_graph(Graph):
     def __init__(self, *args, **kwargs):
         Graph.__init__(self, *args, **kwargs)
@@ -84,7 +95,8 @@ class humidity_graph(Graph):
         print(hum_list[-4:])
         self.axes.plot([0, 1, 2, 3], hum_list[-4:], 'r')
         self.draw()
-    
+ 
+# Main class which initializes all the functions required for displaying sensor values
 class project1(QDialog):
     def __init__(self, parent=None):
         super(project1,self).__init__()
@@ -111,6 +123,7 @@ class project1(QDialog):
         self.get_hum()
 
     @pyqtSlot()
+    # Displays temperature values, allows user to enter threshold value and gives an alert accordingly
     def get_temp(self):
         try:
             time = QTime.currentTime()
@@ -165,6 +178,7 @@ class project1(QDialog):
                self.temp_button = 0
                QTimer.singleShot(1000, self.get_temp)
 
+    # Displays humidity values, allows user to enter threshold value and gives an alert accordingly
     def get_hum(self):
         try:
             time = QTime.currentTime()
@@ -198,16 +212,21 @@ class project1(QDialog):
                self.hum_button = 0
                QTimer.singleShot(1000, self.get_hum)
 
+    # Whenever temeprature refresh button is pressed this function is called. This function then calls get_temp()
+    # for displaying the temperature value
     def temp_refresh_clicked(self):
         self.temp_button = 1
         time = QTime.currentTime()
         self.get_temp()
 
+    # Whenever humidity refresh button is pressed this function is called. This function then calls get_hum()
+    # for displaying the humidity value
     def humidity_refresh_clicked(self):
         self.hum_button = 1
         time = QTime.currentTime()
         self.get_hum()
 
+    # This function is called whenever the user needs to switch between units Celsius and Fahreinheit
     def conversion_clicked(self):
         self.conversion_flag = 1 - self.conversion_flag
 
@@ -219,4 +238,5 @@ if __name__ == '__main__':
        widget = project1()
        widget.show()
        sys.exit(app.exec_())
+
 
