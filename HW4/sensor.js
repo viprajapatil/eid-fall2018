@@ -1,3 +1,10 @@
+/*
+Author : Vipraja Patil
+Descr: Takes temperature and humidity values from DHT22 and displays them after every second.
+After every 10th reading average, lowest and highest value is displayed.
+Reference: https://github.com/momenso/node-dht-sensor
+*/
+
 var sensorLib = require("node-dht-sensor");
 var temp_array = [];
 var hum_array = [];
