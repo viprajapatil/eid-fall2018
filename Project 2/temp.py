@@ -8,6 +8,7 @@ https://stackoverflow.com/questions/11812000/login-dialog-pyqt
 https://ralsina.me/posts/BB974.html
 https://gist.github.com/pklaus/3e16982d952969eb8a9a#file-embedding_in_qt5-py-L14
 https://www.youtube.com/watch?v=7SrD4l2o-uk
+https://www.w3schools.com/python/python_mysql_getstarted.asp
 """
 import sys
 from PyQt5 import QtCore
@@ -18,6 +19,7 @@ from PyQt5.uic import loadUi
 import Adafruit_DHT as sensor
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+import mysql.connector
 
 temp_list = []
 hum_list = []
@@ -120,6 +122,40 @@ class project1(QDialog):
         self.conversion_button.clicked.connect(self.conversion_clicked)
         self.get_temp()
         self.get_hum()
+		
+		#Create mysql database
+		mydb = mysql.connector.connect(
+				host="localhost",
+				user="vipraja",
+				passwd="vipraja",
+				database="project2_database"
+			)
+		mycursor = mydb.cursor()
+		try:
+			mycursor.execute("CREATE DATABASE project2_database")
+		except mysql.connector.Error as err:
+			print("Failed creating database: {}".format(err))
+			exit(1)
+		
+		mycursor.execute("""CREATE TABLE IF NOT EXISTS Temperature(
+						Count INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+						Temperature_value DOUBLE,
+						Highest DOUBLE,
+						Lowest DOUBLE,
+						Average DOUBLE,
+						Last DOUBLE,
+						Timestamp DateTime""")
+		mydb.commit()
+		mycursor.execute("""CREATE TABLE IF NOT EXISTS Humidity(
+						Count INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+						Humidity_value DOUBLE,
+						Highest DOUBLE,
+						Lowest DOUBLE,
+						Average DOUBLE,
+						Last DOUBLE,
+						Timestamp DateTime""")
+		mydb.commit()
+
 
     @pyqtSlot()
     # Displays temperature values, allows user to enter threshold value and gives an alert accordingly
@@ -181,7 +217,13 @@ class project1(QDialog):
 				self.avg_temp_time.setText('Time: {}'.format(time.toString(Qt.DefaultLocaleLongDate)))
 				self.high_temp_time.setText('Time: {}'.format(time.toString(Qt.DefaultLocaleLongDate)))
 				self.low_temp_time.setText('Time: {}'.format(time.toString(Qt.DefaultLocaleLongDate)))
-				
+
+			# Insert values in mysql database
+			insert_statement = "INSERT INTO Temperature (Temperature_value, Highest, Lowest, Average, Last, Timestamp) VALUES (%d, %d, %d, %d, %d, %s)"
+			val = (temp, max(temp_list), min(temp_list), temp_avg, temp, time.toString(Qt.DefaultLocaleLongDate))
+			mycursor.execute(insert_statement, val)
+			mydb.commit()
+			
         finally:
                self.temp_button = 0
                QTimer.singleShot(1000, self.get_temp)
@@ -227,6 +269,13 @@ class project1(QDialog):
 					self.avg_hum_label.setText('Average: {} %'.format(round(temp_avg,2)))
 					self.high_hum_label.setText('Highest: {} %'.format(round(max(temp_list),2)))
 					self.low_hum_label.setText('Lowest: {} %'.format(round(min(temp_list),2)))
+				
+			# Insert Humidity values in mysql data base
+			insert_statement = "INSERT INTO Humidity (Humidity_value, Highest, Lowest, Average, Last, Timestamp) VALUES (%d, %d, %d, %d, %d, %s)"
+			val = (humidity, max(hum_list), min(hum_list), hum_avg, humidity, time.toString(Qt.DefaultLocaleLongDate))
+			mycursor.execute(insert_statement, val)
+			mydb.commit()
+			
         finally:
                self.hum_button = 0
                QTimer.singleShot(1000, self.get_hum)
