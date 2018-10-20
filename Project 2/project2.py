@@ -1,14 +1,16 @@
 """
 Interfacing DHT22 with Rpi3
+
 @author Vipraja Patil
+
 @description
 Created .ui files using QT GUI. Using these .ui files craeted a Python application for retrieving temperature and humidity values from DHT22 sensor which is interfaced with Rpi3 and displaying them.
+
 @references:
 https://stackoverflow.com/questions/11812000/login-dialog-pyqt
 https://ralsina.me/posts/BB974.html
 https://gist.github.com/pklaus/3e16982d952969eb8a9a#file-embedding_in_qt5-py-L14
 https://www.youtube.com/watch?v=7SrD4l2o-uk
-https://www.w3schools.com/python/python_mysql_getstarted.asp
 """
 import sys
 from PyQt5 import QtCore
@@ -19,7 +21,6 @@ from PyQt5.uic import loadUi
 import Adafruit_DHT as sensor
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import mysql.connector
 from datetime import datetime, time
 
 temp_list = []
@@ -105,8 +106,8 @@ class project1(QDialog):
         self.temp_button = 0
         self.hum_button = 0
         self.conversion_flag = 0      # 0- Celsius, 1- Fahrenheit
-		self.temp_count = 0;
-		self.hum_count = 0;
+        self.temp_count = 0
+        self.hum_count = 0
         time = QTime.currentTime()
         self.temp_threshold.text()
         self.hum_threshold.text()
@@ -123,42 +124,14 @@ class project1(QDialog):
         self.conversion_button.clicked.connect(self.conversion_clicked)
         self.get_temp()
         self.get_hum()
-		
-		#Create mysql database
-		mydb = mysql.connector.connect(
-				host="localhost",
-				user="vipraja",
-				passwd="vipraja",
-				database="project2_database"
-			)
-		mycursor = mydb.cursor()
-		try:
-			mycursor.execute("CREATE DATABASE project2_database")
-		except mysql.connector.Error as err:
-			print("Failed creating database: {}".format(err))
-			exit(1)
-		
-		mycursor.execute("""CREATE TABLE IF NOT EXISTS Temperature(
-						Count INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-						Temperature_value DOUBLE,
-						Highest DOUBLE,
-						Lowest DOUBLE,
-						Average DOUBLE,
-						Last DOUBLE,
-						Timestamp DateTime""")
-		mydb.commit()
-		mycursor.execute("""CREATE TABLE IF NOT EXISTS Humidity(
-						Count INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-						Humidity_value DOUBLE,
-						Highest DOUBLE,
-						Lowest DOUBLE,
-						Average DOUBLE,
-						Last DOUBLE,
-						Timestamp DateTime""")
-		mydb.commit()
-
 
     @pyqtSlot()
+    # Celcius to Fahreinheit
+    def conversion(self, temp):
+        temp = temp * 1.8
+        temp = temp + 32
+        return temp
+
     # Displays temperature values, allows user to enter threshold value and gives an alert accordingly
     def get_temp(self):
         try:
@@ -167,74 +140,71 @@ class project1(QDialog):
             if temp is None and humidity is None:
                self.temp_value.setText('ERROR')
             else:
-               temp_list.append(round(temp,4))
-			   temp_count++;
-               tstr = self.temp_threshold.text()
-               if not tstr:
-                  t = 26
-               else:
-                  t = int(tstr)
-               if self.temp_button == 1:
-                  if self.conversion_flag == 1:
-                     temp = conversion(temp)
-                     tstr = self.temp_threshold.text()
-                     if temp > (t*1.8)+32:
-                        self.alarm_temp.setText('ALERT HIGH TEMP')
-                     else:
-                        self.alarm_temp.setText('')
-                     self.temp_value.setText('{} F'.format(round(temp,4)))
-                  else:
-                     if temp > t:
-                        self.alarm_temp.setText('ALERT HIGH TEMP')
-                     else:
-                        self.alarm_temp.setText('')
-                    
-                  self.temp_value.setText('{} C'.format(round(temp,4)))
-                  self.temp_time.setText(time.toString(Qt.DefaultLocaleLongDate))
-                  self.temp_button = 0
+                self.temp_count = self.temp_count + 1
+                today = datetime.now().strftime("%H:%M:%S %Y-%m-%d")
+                temp_list.append(round(temp,4))
+                print('{} count:{}'.format(temp,self.temp_count))
+                tstr = self.temp_threshold.text()
+                if not tstr:
+                    t = 26
+                else:
+                    t = int(tstr)
+                if self.temp_button == 1:
+                    if self.conversion_flag == 1:
+                        temp = temp * 1.8
+                        temp = temp + 32
+                        tstr = self.temp_threshold.text()
+                        if temp > (t*1.8)+32:
+                            self.alarm_temp.setText('ALERT HIGH TEMP')
+                        else:
+                            self.alarm_temp.setText('')
+                        self.temp_value.setText('{} F'.format(round(temp,4)))
+                    else:
+                        if temp > t:
+                            self.alarm_temp.setText('ALERT HIGH TEMP')
+                        else:
+                            self.alarm_temp.setText('')
 
-               temp_avg = 0
-               temp_list_count = 0;
-               for i in temp_list:
-                  temp_avg = i + temp_avg
-                  temp_list_count = temp_list_count + 1
-               temp_avg = temp_avg/temp_list_count
-               if self.conversion_flag == 1:
-                  temp_avg_f = conversion(temp_avg)
-			
-			if temp_count is 8:
-				if self.conversion_flag == 1:
-					self.last_temp_label.setText('Last value: {} F'.format(round(temp,2)))					
-					self.avg_temp_label.setText('Average: {} F'.format(round(temp_avg_f,2)))					
-					self.high_temp_label.setText('Highest: {} F'.format(round(conversion(max(temp_list),2)))	
-					self.low_temp_label.setText('Lowest: {} F'.format(round(conversion(min(temp_list),2)))	
-				else:
-					self.last_temp_label.setText('Last value: {} C'.format(round(temp,2)))
-					self.avg_temp_label.setText('Average: {} C'.format(round(temp_avg,2)))
-					self.high_temp_label.setText('Highest: {} C'.format(round(max(temp_list),2)))
-					self.low_temp_label.setText('Lowest: {} C'.format(round(min(temp_list),2)))
-				# print timestamp
-				self.last_temp_time.setText('Time: {}'.format(time.toString(Qt.DefaultLocaleLongDate)))
-				self.avg_temp_time.setText('Time: {}'.format(time.toString(Qt.DefaultLocaleLongDate)))
-				self.high_temp_time.setText('Time: {}'.format(time.toString(Qt.DefaultLocaleLongDate)))
-				self.low_temp_time.setText('Time: {}'.format(time.toString(Qt.DefaultLocaleLongDate)))
+                    self.temp_value.setText('{} C'.format(round(temp,4)))
+                    self.temp_time.setText(today)
+                    self.temp_button = 0
 
-			# Insert values in mysql database
-			today = datetime.now().strftime("%H:%M:%S %Y-%m-%d")
-			insert_statement = "INSERT INTO Temperature (Temperature_value, Highest, Lowest, Average, Last, Timestamp) VALUES (%d, %d, %d, %d, %d, %s)"
-			val = (temp, max(temp_list), min(temp_list), temp_avg, temp, today)
-			mydb.commit()
-			print(mycursor.rowcount, "record inserted.")
+                temp_avg = 0
+                temp_list_count = 0;
+                for i in temp_list:
+                    temp_avg = i + temp_avg
+                    temp_list_count = temp_list_count + 1
+                temp_avg = temp_avg/temp_list_count
+                if self.conversion_flag == 1:
+                    temp_avg_f = temp_avg
+                    temp_avg_f = temp_avg_f * 1.8
+                    temp_avg_f = temp_avg_f + 32
+
+                if (self.temp_count%8) == 0:
+                    if self.conversion_flag == 1:
+                        self.last_temp_label.setText('Last value: {} F'.format(round(temp,2)))                  
+                        self.avg_temp_label.setText('Average: {} F'.format(round(temp_avg_f,2))) 
+                        temp_f_high = self.conversion(max(temp_list))
+                        temp_f_low = self.conversion(min(temp_list))
+                        self.high_temp_label.setText('Highest: {} F'.format(round(temp_f_high,2)))    
+                        self.low_temp_label.setText('Lowest: {} F'.format(round(temp_f_low,2)))  
+                    else:
+                        self.last_temp_label.setText('Last value: {} C'.format(round(temp,2)))
+                        self.avg_temp_label.setText('Average: {} C'.format(round(temp_avg,2)))
+                        self.high_temp_label.setText('Highest: {} C'.format(round(max(temp_list),2)))
+                        self.low_temp_label.setText('Lowest: {} C'.format(round(min(temp_list),2)))
+                    # print timestamp
+                    self.last_temp_time.setText('Time: {}'.format(today))
+                    self.avg_temp_time.setText('Time: {}'.format(today))
+                    self.high_temp_time.setText('Time: {}'.format(today))
+                    self.low_temp_time.setText('Time: {}'.format(today))
+
+                #insert values in data base
         finally:
                self.temp_button = 0
                QTimer.singleShot(1000, self.get_temp)
 
-	# Celcius to Fahreinheit
-	def conversion(temp):
-		temp = temp * 1.8
-		temp = temp + 32
-		return temp
-			   
+
     # Displays humidity values, allows user to enter threshold value and gives an alert accordingly
     def get_hum(self):
         try:
@@ -243,41 +213,39 @@ class project1(QDialog):
             if temp is None and humidity is None:
                self.hum_value.setText('ERROR')
             else:
-				hum_count++;
-               if self.hum_button == 1:
-                  self.hum_value.setText('{} %'.format(round(humidity,4)))
-                  self.hum_time.setText(time.toString(Qt.DefaultLocaleLongDate))
-                  self.hum_button = 0
-               hstr = self.hum_threshold.text()
-               if not hstr:
-                   h = 50
-               else:
-                   h = int(hstr)                  
-               if humidity > h:
-                  self.alarm_hum.setText('ALERT HIGH HUM')
-               else:
-                  self.alarm_hum.setText('')
-               hum_avg = 0
-               hum_list_count = 0
-               hum_list.append(round(humidity,4))
-               for i in hum_list:
-                  hum_avg = i + hum_avg
-                  hum_list_count = hum_list_count + 1
-               hum_avg = hum_avg/hum_list_count
-			   
-			   if hum_count is 8:
-					self.last_hum_label.setText('Last value: {} %'.format(round(temp,2)))
-					self.avg_hum_label.setText('Average: {} %'.format(round(temp_avg,2)))
-					self.high_hum_label.setText('Highest: {} %'.format(round(max(temp_list),2)))
-					self.low_hum_label.setText('Lowest: {} %'.format(round(min(temp_list),2)))
-				
-			# Insert Humidity values in mysql data base
-			today = datetime.now().strftime("%H:%M:%S %Y-%m-%d")
-			insert_statement = "INSERT INTO Humidity (Humidity_value, Highest, Lowest, Average, Last, Timestamp) VALUES (%d, %d, %d, %d, %d, %s)"
-			val = (humidity, max(hum_list), min(hum_list), hum_avg, humidity, today)
-			mycursor.execute(insert_statement, val)
-			mydb.commit()
-			print(mycursor.rowcount, "record inserted.")
+                today = datetime.now().strftime("%H:%M:%S %Y-%m-%d")
+                self.hum_count = self.hum_count + 1
+                if self.hum_button == 1:
+                    self.hum_value.setText('{} %'.format(round(humidity,4)))
+                    self.hum_time.setText(time.toString(Qt.DefaultLocaleLongDate))
+                    self.hum_button = 0
+                hstr = self.hum_threshold.text()
+                if not hstr:
+                    h = 50
+                else:
+                    h = int(hstr)                  
+                if humidity > h:
+                    self.alarm_hum.setText('ALERT HIGH HUM')
+                else:
+                    self.alarm_hum.setText('')
+                hum_avg = 0
+                hum_list_count = 0
+                hum_list.append(round(humidity,4))
+                for i in hum_list:
+                    hum_avg = i + hum_avg
+                    hum_list_count = hum_list_count + 1
+                hum_avg = hum_avg/hum_list_count
+
+                if self.hum_count is 8:
+                    self.last_hum_label.setText('Last value: {} %'.format(round(humidity,2)))
+                    self.avg_hum_label.setText('Average: {} %'.format(round(hum_avg,2)))
+                    self.high_hum_label.setText('Highest: {} %'.format(round(max(hum_list),2)))
+                    self.low_hum_label.setText('Lowest: {} %'.format(round(min(hum_list),2)))
+                    self.last_hum_time.setText('Time: {}'.format(today))
+                    self.avg_hum_time.setText('Time: {}'.format(today))
+                    self.high_hum_time.setText('Time: {}'.format(today))
+                    self.low_hum_time.setText('Time: {}'.format(today))
+
         finally:
                self.hum_button = 0
                QTimer.singleShot(1000, self.get_hum)
@@ -308,4 +276,5 @@ if __name__ == '__main__':
        widget = project1()
        widget.show()
        sys.exit(app.exec_())
+
 
