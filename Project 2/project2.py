@@ -23,26 +23,67 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from datetime import datetime, time
 import MySQLdb
+import tornado.httpserver
+import tornado.websocket
+import tornado.ioloop
+import tornado.web
+import socket
 
 temp_list = []
 hum_list = []
 #Create mysql database
-db = MySQLdb.connect(host="localhost", user="root", passwd="root",db="project2db")
+
+db = MySQLdb.connect(host="localhost", user="root", passwd="root", db="project2db")
 # Create a Cursor object to execute queries.
 cur = db.cursor()
 
+cur.execute("DELETE IGNORE FROM temperatureDB")
+db.commit()
+cur.execute("DELETE IGNORE FROM humidityDB")
+db.commit()
 cur.execute("""CREATE TABLE IF NOT EXISTS humidityDB (
-                        count int NOT NULL AUTO_INCREMENT,
-                        humidity varchar(255),
-                        timestamp varchar(255),
-                        highest varchar(255),
-                        lowest varchar(255),
-                        last varchar(255),
-                        average varchar(255),
-                        PRIMARY KEY (count)
-                        );""")
+                    count int NOT NULL AUTO_INCREMENT,
+                    humidity varchar(255),
+                    timestamp varchar(255),
+                    highest varchar(255),
+                    lowest varchar(255),
+                    last varchar(255),
+                    average varchar(255),
+                    PRIMARY KEY (count)
+                    );""")
+db.commit();
+
+cur.execute("""CREATE TABLE IF NOT EXISTS temperatureDB (
+                    count int NOT NULL AUTO_INCREMENT,
+                    temperature varchar(255),
+                    timestamp varchar(255),
+                    highest varchar(255),
+                    lowest varchar(255),
+                    last varchar(255),
+                    average varchar(255),
+                    PRIMARY KEY (count)
+                    );""")
 db.commit()
 
+class WSHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        print('new connection')
+      
+    def on_message(self, message):
+        print('message received:  {}'.format(message))
+        # Reverse Message and send it back
+        print('sending back message: %s' % message[::-1])
+        self.write_message(message[::-1])
+ 
+    def on_close(self):
+        print('connection closed')
+ 
+    def check_origin(self, origin):
+        return True
+ 
+application = tornado.web.Application([
+    (r'/ws', WSHandler),
+])
 
 # Class defining Login dialog
 class Login(QDialog):
@@ -223,6 +264,8 @@ class project1(QDialog):
                 val = (temp, max(temp_list), min(temp_list), temp_avg, temp, today)
                 cur.execute(insert_statement, val)
                 db.commit()
+                cur.execute("SELECT * FROM temperatureDB")
+                db.commit()
                 print(cur.rowcount, "record inserted.")
                         
         finally:
@@ -271,6 +314,14 @@ class project1(QDialog):
                     self.high_hum_time.setText('Time: {}'.format(today))
                     self.low_hum_time.setText('Time: {}'.format(today))
 
+                global cur
+                #insert values in data base
+                insert_statement = "INSERT INTO humidityDB (humidity, highest, lowest, average, last, timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
+                val = (humidity, max(hum_list), min(hum_list), hum_avg, humidity, today)
+                cur.execute(insert_statement, val)
+                db.commit()
+               # cur.execute("SELECT * FROM humdidityDB")
+
         finally:
                self.hum_button = 0
                QTimer.singleShot(1000, self.get_hum)
@@ -300,6 +351,12 @@ if __name__ == '__main__':
     if login.exec_() == QtWidgets.QDialog.Accepted:
        widget = project1()
        widget.show()
+       http_server = tornado.httpserver.HTTPServer(application)
+       http_server.bind(8888)
+       http_server.start(0)
+       myIP = socket.gethostbyname(socket.gethostname())
+       print ('*** Websocket Server Started at %s***' % myIP)
+       tornado.ioloop.IOLoop.instance().start()
        sys.exit(app.exec_())
-
+    
 
