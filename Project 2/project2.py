@@ -28,6 +28,9 @@ import tornado.websocket
 import tornado.ioloop
 import tornado.web
 import socket
+import threading
+import time
+import asyncio
 
 temp_list = []
 hum_list = []
@@ -156,6 +159,7 @@ class humidity_graph(Graph):
         self.axes.plot([0, 1, 2, 3], hum_list[-4:], 'r')
         self.draw()
  
+
 # Main class which initializes all the functions required for displaying sensor values
 class project1(QDialog):
     def __init__(self, parent=None):
@@ -344,6 +348,17 @@ class project1(QDialog):
     def conversion_clicked(self):
         self.conversion_flag = 1 - self.conversion_flag
 
+def thread1():
+    asyncio.set_event_loop(asyncio.new_event_loop())
+    http_server = tornado.httpserver.HTTPServer(application)
+    http_server.listen(8888)
+    myIP = socket.gethostbyname(socket.gethostname())
+    print ('*** Websocket Server Started at %s***' % myIP)
+    while True:
+        tornado.ioloop.IOLoop.instance().start()
+
+t = threading.Thread(name="thread1", target=thread1)
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     login = Login()
@@ -351,12 +366,8 @@ if __name__ == '__main__':
     if login.exec_() == QtWidgets.QDialog.Accepted:
        widget = project1()
        widget.show()
-       http_server = tornado.httpserver.HTTPServer(application)
-       http_server.bind(8888)
-       http_server.start(0)
-       myIP = socket.gethostbyname(socket.gethostname())
-       print ('*** Websocket Server Started at %s***' % myIP)
-       tornado.ioloop.IOLoop.instance().start()
+       t.daemon = True
+       t.start()
        sys.exit(app.exec_())
     
 
