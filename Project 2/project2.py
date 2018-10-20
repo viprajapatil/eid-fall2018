@@ -22,9 +22,27 @@ import Adafruit_DHT as sensor
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from datetime import datetime, time
+import MySQLdb
 
 temp_list = []
 hum_list = []
+#Create mysql database
+db = MySQLdb.connect(host="localhost", user="root", passwd="root",db="project2db")
+# Create a Cursor object to execute queries.
+cur = db.cursor()
+
+cur.execute("""CREATE TABLE IF NOT EXISTS humidityDB (
+                        count int NOT NULL AUTO_INCREMENT,
+                        humidity varchar(255),
+                        timestamp varchar(255),
+                        highest varchar(255),
+                        lowest varchar(255),
+                        last varchar(255),
+                        average varchar(255),
+                        PRIMARY KEY (count)
+                        );""")
+db.commit()
+
 
 # Class defining Login dialog
 class Login(QDialog):
@@ -124,6 +142,7 @@ class project1(QDialog):
         self.conversion_button.clicked.connect(self.conversion_clicked)
         self.get_temp()
         self.get_hum()
+        
 
     @pyqtSlot()
     # Celcius to Fahreinheit
@@ -198,8 +217,14 @@ class project1(QDialog):
                     self.avg_temp_time.setText('Time: {}'.format(today))
                     self.high_temp_time.setText('Time: {}'.format(today))
                     self.low_temp_time.setText('Time: {}'.format(today))
-
+                global cur
                 #insert values in data base
+                insert_statement = "INSERT INTO temperatureDB (temperature, highest, lowest, average, last, timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
+                val = (temp, max(temp_list), min(temp_list), temp_avg, temp, today)
+                cur.execute(insert_statement, val)
+                db.commit()
+                print(cur.rowcount, "record inserted.")
+                        
         finally:
                self.temp_button = 0
                QTimer.singleShot(1000, self.get_temp)
