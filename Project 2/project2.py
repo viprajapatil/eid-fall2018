@@ -29,8 +29,13 @@ import tornado.ioloop
 import tornado.web
 import socket
 import threading
+from threading import Lock
 import time
 import asyncio
+
+lock = Lock()
+client_data = ""
+connection_flag = 0
 
 temp_list = []
 hum_list = []
@@ -73,11 +78,58 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         print('new connection')
       
     def on_message(self, message):
+        global connection_flag
+        print("connection flag handler {}".format(connection_flag))
         print('message received:  {}'.format(message))
-        # Reverse Message and send it back
-        print('sending back message: %s' % message[::-1])
-        self.write_message(message[::-1])
- 
+        lock.acquire()
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM temperatureDB ORDER BY count DESC LIMIT 1")
+        for row in cursor.fetchall():
+            print(connection_flag)
+            if connection_flag == 1:
+                self.write_message("Sensor not connected;Sensor not connected")
+            else:
+                if message == "TlastC":
+                    self.write_message("{};{}".format(row[5],row[2]))
+                elif message == "TlastF":
+                    client_data = float(row[5])
+                    client_data = client_data * 1.8
+                    client_data =  client_data + 32
+                    self.write_message("{};{}".format(client_data, row[2]))
+                elif message == "TavgC":
+                    self.write_message("{};{}".format(row[6],row[2]))
+                elif message == "TavgF":
+                    client_data = row[6]
+                    client_data = client_data * 1.8
+                    client_data = client_data + 32
+                    self.write_message("{};{}".format(client_data,row[2]))
+                elif message == "ThighC":
+                    self.write_message("{}:{}".format(row[3],row[2]))
+                elif message == "ThighF":
+                    client_data = row[3]
+                    client_data = client_data * 1.8
+                    client_data = client_data + 32
+                    self.write_message("{};{}".format(client_data,row[2]))
+                elif message == "TlowC":
+                    self.write_message("{};{}".format(row[4],row[2]))
+                elif message == "TlowF":
+                    client_data = row[4]
+                    client_data = client_data * 1.8
+                    client_data = client_data + 32
+                    self.write_message("{};{}".format(client_data,row[2]))
+
+        cursor.execute("SELECT * FROM humidityDB ORDER BY count DESC LIMIT 1")
+        for row in cursor.fetchall():
+            if message == "Hlast":
+                self.write_message("{};{}".format(row[5],row[2]))
+            elif message == "Havg":
+                self.write_message("{};{}".format(row[6],row[2]))
+            elif message == "Hlow":
+                self.write_message("{};{}".format(row[4],row[2]))
+            elif message == "Hhigh":
+                self.write_message("{};{}".format(row[3],row[2]))
+        lock.release()
+
     def on_close(self):
         print('connection closed')
  
@@ -198,12 +250,17 @@ class project1(QDialog):
 
     # Displays temperature values, allows user to enter threshold value and gives an alert accordingly
     def get_temp(self):
+        global connection_flag
         try:
             time = QTime.currentTime()
             humidity,temp = sensor.read(sensor.DHT22, 4)
             if temp is None and humidity is None:
                self.temp_value.setText('ERROR')
+               print("*************COnnection removed*************")
+               connection_flag = 1
+               print("flag get_temp {}".format(connection_flag))
             else:
+                connection_flag = 0
                 self.temp_count = self.temp_count + 1
                 today = datetime.now().strftime("%H:%M:%S %Y-%m-%d")
                 temp_list.append(round(temp,4))
@@ -262,7 +319,10 @@ class project1(QDialog):
                     self.avg_temp_time.setText('Time: {}'.format(today))
                     self.high_temp_time.setText('Time: {}'.format(today))
                     self.low_temp_time.setText('Time: {}'.format(today))
+                
                 global cur
+                lock.acquire()
+                cur = db.cursor()
                 #insert values in data base
                 insert_statement = "INSERT INTO temperatureDB (temperature, highest, lowest, average, last, timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
                 val = (temp, max(temp_list), min(temp_list), temp_avg, temp, today)
@@ -271,6 +331,7 @@ class project1(QDialog):
                 cur.execute("SELECT * FROM temperatureDB")
                 db.commit()
                 print(cur.rowcount, "record inserted.")
+                lock.release()
                         
         finally:
                self.temp_button = 0
@@ -284,7 +345,9 @@ class project1(QDialog):
             humidity,temp = sensor.read(sensor.DHT22, 4)
             if temp is None and humidity is None:
                self.hum_value.setText('ERROR')
+               connection_flag = 1
             else:
+                connection_flag = 0
                 today = datetime.now().strftime("%H:%M:%S %Y-%m-%d")
                 self.hum_count = self.hum_count + 1
                 if self.hum_button == 1:
@@ -319,11 +382,13 @@ class project1(QDialog):
                     self.low_hum_time.setText('Time: {}'.format(today))
 
                 global cur
+                lock.acquire()
                 #insert values in data base
                 insert_statement = "INSERT INTO humidityDB (humidity, highest, lowest, average, last, timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
                 val = (humidity, max(hum_list), min(hum_list), hum_avg, humidity, today)
                 cur.execute(insert_statement, val)
                 db.commit()
+                lock.release()
                # cur.execute("SELECT * FROM humdidityDB")
 
         finally:
@@ -370,4 +435,5 @@ if __name__ == '__main__':
        t.start()
        sys.exit(app.exec_())
     
+
 
