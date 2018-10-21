@@ -180,7 +180,7 @@ class temperature_graph(Graph):
         Graph.__init__(self, *args, **kwargs)
         timer = QtCore.QTimer(self)
         timer.timeout.connect(self.update_figure)
-        timer.start(12000)
+        timer.start(32000)
 
     def compute_initial_figure(self):
         self.axes.plot([0, 1, 2, 3], [0, 0, 0 ,0], 'r')
@@ -200,7 +200,7 @@ class humidity_graph(Graph):
         Graph.__init__(self, *args, **kwargs)
         timer1 = QtCore.QTimer(self)
         timer1.timeout.connect(self.update_figure)
-        timer1.start(12000)
+        timer1.start(32000)
 
     def compute_initial_figure(self):
         self.axes.plot([0, 1, 2, 3], [0, 0, 0 ,0], 'r')
@@ -256,9 +256,8 @@ class project1(QDialog):
             humidity,temp = sensor.read(sensor.DHT22, 4)
             if temp is None and humidity is None:
                self.temp_value.setText('ERROR')
-               print("*************COnnection removed*************")
+               print("*************Connection removed*************")
                connection_flag = 1
-               print("flag get_temp {}".format(connection_flag))
             else:
                 connection_flag = 0
                 self.temp_count = self.temp_count + 1
@@ -335,7 +334,7 @@ class project1(QDialog):
                         
         finally:
                self.temp_button = 0
-               QTimer.singleShot(1000, self.get_temp)
+               QTimer.singleShot(5000, self.get_temp)
 
 
     # Displays humidity values, allows user to enter threshold value and gives an alert accordingly
@@ -346,6 +345,7 @@ class project1(QDialog):
             if temp is None and humidity is None:
                self.hum_value.setText('ERROR')
                connection_flag = 1
+               print("***********Connection removed**************")
             else:
                 connection_flag = 0
                 today = datetime.now().strftime("%H:%M:%S %Y-%m-%d")
@@ -393,7 +393,7 @@ class project1(QDialog):
 
         finally:
                self.hum_button = 0
-               QTimer.singleShot(1000, self.get_hum)
+               QTimer.singleShot(5000, self.get_hum)
 
     # Whenever temeprature refresh button is pressed this function is called. This function then calls get_temp()
     # for displaying the temperature value
