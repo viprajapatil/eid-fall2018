@@ -4,13 +4,17 @@ Interfacing DHT22 with Rpi3
 @author Vipraja Patil
 
 @description
-Created .ui files using QT GUI. Using these .ui files craeted a Python application for retrieving temperature and humidity values from DHT22 sensor which is interfaced with Rpi3 and displaying them.
+Created .ui files using QT GUI. Using these .ui files craeted a Python application for retrieving temperature and humidity values from DHT22 sensor which is interfaced with Rpi3 and all these values are stored in a database. This Rpi also acts as a webserver and keeps on listening for requests from the client. According to the requests appropriate data is retrieved from the database and is sent to the client. 
 
 @references:
 https://stackoverflow.com/questions/11812000/login-dialog-pyqt
 https://ralsina.me/posts/BB974.html
 https://gist.github.com/pklaus/3e16982d952969eb8a9a#file-embedding_in_qt5-py-L14
 https://www.youtube.com/watch?v=7SrD4l2o-uk
+
+**ADD REFERENCE FOR WEBSOCKETS**
+
+
 """
 import sys
 from PyQt5 import QtCore
@@ -39,16 +43,16 @@ connection_flag = 0
 
 temp_list = []
 hum_list = []
-#Create mysql database
-
+#Connect to the database
 db = MySQLdb.connect(host="localhost", user="root", passwd="root", db="project2db")
 # Create a Cursor object to execute queries.
 cur = db.cursor()
-
+# Clear database whenever we run the application
 cur.execute("DELETE IGNORE FROM temperatureDB")
 db.commit()
 cur.execute("DELETE IGNORE FROM humidityDB")
 db.commit()
+# Create tables in the database
 cur.execute("""CREATE TABLE IF NOT EXISTS humidityDB (
                     count int NOT NULL AUTO_INCREMENT,
                     humidity varchar(255),
@@ -73,6 +77,9 @@ cur.execute("""CREATE TABLE IF NOT EXISTS temperatureDB (
                     );""")
 db.commit()
 
+'''
+Server sends requested data to the client according to the requests by extracting appropriate data from the mysql database.
+'''
 class WSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         print('new connection')
@@ -249,6 +256,7 @@ class project1(QDialog):
         return temp
 
     # Displays temperature values, allows user to enter threshold value and gives an alert accordingly
+    # Store temperature values in the database
     def get_temp(self):
         global connection_flag
         try:
@@ -338,6 +346,7 @@ class project1(QDialog):
 
 
     # Displays humidity values, allows user to enter threshold value and gives an alert accordingly
+    # Store humidity values in the databse
     def get_hum(self):
         try:
             time = QTime.currentTime()
@@ -413,6 +422,10 @@ class project1(QDialog):
     def conversion_clicked(self):
         self.conversion_flag = 1 - self.conversion_flag
 
+'''
+This thread is created for running the server side by side with the QT application. This is called after successful 
+login. Server keeps on listening for requests continuously.
+'''
 def thread1():
     asyncio.set_event_loop(asyncio.new_event_loop())
     http_server = tornado.httpserver.HTTPServer(application)
